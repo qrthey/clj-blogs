@@ -1,0 +1,28 @@
+#+TITLE: Clj Blogs
+#+STARTUP: indent
+#+OPTIONS: toc:nil num:nil ^:nil html-postamble:nil
+
+* Introduction
+
+A collection of blog posts about clojure and clojurescript. The
+entries are written in org mode that allow for literate programming,
+but can just be read fine without emacs and org mode. github itself
+renders org documents just fine.
+
+* Blog entries
+
+** Setting up a full stack clj / cljs project from scratch
+[[./setting-up-clj-cljs-project-from-scratch.org][setting-up-clj-cljs-project-from-scratch.org]] describes in detail how
+to setup a leiningen project with a ring/jetty backend server that
+uses reitit for routing, and combining that project with a shadow-cljs
+clojurescript SPA (Single Page Application) that uses reagent. The
+result is a minimal full stack example in which it is possible to
+switch between connected clojure and a clojurescript repls on the fly.
+
+** Namespaced keyword inheritance & Multimethods
+[[./clj-derived-keywords-multimethods.org][clj-derived-keywords-multimethods.org]] shows a lesser known feature of
+clojure that allows for on the fly creation of taxonomies by deriving
+namespaced keywords from each other. These taxonomies can be useful
+when using multimethods, as they will influence the resolved concrete
+function to choose when dispatching on values containing namespaced
+keywords.

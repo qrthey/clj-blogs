@@ -1,0 +1,293 @@
+#+TITLE: Namespaced keyword inheritance & Multimethods
+#+STARTUP: indent overview
+#+OPTIONS: toc:nil num:nil ^:nil html-postamble:nil
+
+* Establishing taxonomies with derive and namespaced keywords
+
+Clojure has the ~isa?~ function that takes a child and a parent
+argument.
+
+The documentation states "Returns true if (= child parent), or child
+is directly or indirectly derived from parent, either via a Java type
+inheritance relationship or *a relationship established via derive*."
+
+Trying the ~isa?~ function as follows learns us that ~String~ is a
+~String~, and ~String~ is also an ~Object~, but the opposite is not
+true, an ~Object~ is not a ~String~.
+
+#+begin_src clojure
+  (isa? String Object)
+  ;; -> true
+
+  (isa? String String)
+  ;; -> true
+
+  (isa? Object String)
+  ;; -> false
+  #+end_src
+
+The documentation mentions the clojure core ~derive~ function. In
+clojure namespaced keywords can 'derive' from other namespaced
+keywords.
+
+For example, consider a hierarchy of species. Rabbit could derive from
+herbivore, which could derive from mammal etc.
+
+#+begin_src clojure
+  (derive :species/rabbit :species/herbivore)
+  (derive :species/herbivore :species/mammal)
+#+end_src
+
+Using ~derive~ like this manipulates a global hierarchy state
+variable.
+
+We can now likewise use the ~isa?~ function to ask questions about the
+taxonomy we have built. Relationships that haven't been established
+will result in ~false~. For example, we learn that a rabbit is a
+herbivore and that a rabbit also is a mammal. But a lion is neither at
+the moment as haven't used ~derive~ with ~:species/lion~ yet.
+
+#+begin_src clojure
+  (isa? :species/rabbit :species/herbivore)
+  ;; -> true
+
+  (isa? :species/rabbit :species/mammal)
+  ;; -> true
+
+  (isa? :species/lion :species/herbivore)
+  ;; -> false
+
+  (isa? :species/lion :species/mammal)
+  ;; -> false
+#+end_src
+
+As mentioned, when using ~derive~ like we have done, the accumulated
+knowledge of the taxonomy is stored in a global hierarchy. ~derive~
+and ~isa?~ also have arities that work with ad hoc hierarchies. A
+small example of creating an ad hoc taxonomy for rabbits on some
+distant planet follows. The example also shows that multiple
+inheritance can also be expressed (this works against the global
+hierarchy as well).
+
+#+begin_src clojure
+  (def weird-planet-species
+    (-> (make-hierarchy)
+        (derive :species/rabbit :species/two-headed-robot)
+        (derive :species/rabbit :species/dangerous-at-night)))
+#+end_src
+
+In this taxonomy, rabbits are no longer herbivores or mammals, but
+2-headed robots instead.
+
+#+begin_src clojure
+  (isa? weird-planet-species :species/rabbit :species/herbivore)
+  ;; -> false
+
+  (isa? weird-planet-species :species/rabbit :species/mammal)
+  ;; -> false
+
+  (isa? weird-planet-species :species/rabbit :species/two-headed-robot)
+  ;; -> true
+#+end_src
+
+* The global hierarchy and multimethods
+
+Multimethods in clojure, by default, make usage of the global
+hierarchy established with ~derive~. Whenever the dispatch function
+computes namespaced keywords clojure will look for implementations of
+the multimethod for those keywords, but will also consider the global
+hierarchy to find implementations for which the computed keywords have
+a ~isa?~ relationship to the defined multimethods' keywords. An
+example to clarify.
+
+Suppose we want to model what happens when 2 animals encounter each
+other in the wild. We decide to represent an aninmal as a map that at
+least has a :species key and a :name key.
+
+#+begin_src clojure
+  (def roger
+    {:species :species/rabbit
+     :name "Roger"})
+
+  (def miss-bunny
+    {:species :species/rabbit
+     :name "Miss Bunny"})
+
+  (def bambi
+    {:species :species/deer
+     :name "Bambi"})
+
+  (def faline
+    {:species :species/deer
+     :name "Faline"})
+
+  (def simba
+    {:species :species/lion
+     :name "Simba"})
+
+  (def mufasa
+    {:species :species/lion
+     :name "Mufasa"})
+#+end_src
+
+A multimethod ~encounter~ is defined that dispatches on the :species
+keys of the arguments.
+
+#+begin_src clojure
+  (defmulti encounter
+    (fn [animal1 animal2]
+      [(:species animal1) (:species animal2)]))
+#+end_src
+
+It would now be possible to list ~defmethod~ implementations for all
+combinations of species. But we can also take advantage of the global
+hierarchy to simplify things. Let's derive rabbits and deers from
+herbivore, lions from carnivore, and have herbivore and carnivores
+derive from mammal.
+
+#+begin_src clojure
+  (derive :species/rabbit :species/herbivore)
+  (derive :species/deer :species/herbivore)
+  (derive :species/lion :species/carnivore)
+  (derive :species/herbivore :species/mammal)
+  (derive :species/carnivore :species/mammal)
+#+end_src
+
+A simple defmethod could now be defined for the base case where 2
+mammals encounter.
+
+#+begin_src clojure
+  (defmethod encounter [:species/mammal :species/mammal]
+    [animal1 animal2]
+    (str (:name animal1) " the " (name (:species animal1))
+         " encounters " (:name animal2) " the " (name (:species animal2)) "."))
+#+end_src
+
+All combinations now work.
+
+#+begin_src clojure
+  (encounter simba miss-bunny)
+  ;; -> "Simba the lion encounters Miss Bunny the rabbit."
+#+end_src
+
+No concrete implementation for the multimethod dispatch value
+~[:species/lion :species/rabbit]~ has been given, but clojure managed
+to figure out that both animals derive from ~:species/mammal~ and
+evaluated our multimethod as desired.
+
+We can now model some more specific behavior from the animal kingdom.
+A herbivore spotting a carnivore will run for its life, while in the
+opposite case where a carnivore sees a herbivore, the carnivore eats
+the herbivore.
+
+#+begin_src clojure
+  (defmethod encounter [:species/herbivore :species/carnivore]
+    [herb carn]
+    (str (:name herb) " the " (name (:species herb))
+         " sees " (:name carn) " the " (name (:species carn))
+         " and runs for its life, finding a place to hide."))
+
+  (defmethod encounter [:species/carnivore :species/herbivore]
+    [carn herb]
+    (str (:name carn) " the " (name (:species carn))
+         " spots " (:name herb) " the " (name (:species herb))
+         " and immediately goes for the kill."))
+#+end_src
+
+#+begin_src clojure
+  (encounter faline mufasa)
+  ;; -> "Faline the deer sees Mufasa the lion and runs for its life, finding a place to hide."
+
+  (encounter mufasa faline)
+  ;; -> "Mufasa the lion spots Faline the deer and immediately goes for the kill."
+#+end_src
+
+Clojure prefered the more specific implementation of the multimethod.
+We can make a more specific implementation for the case where a lion
+spots a deer.
+
+#+begin_src clojure
+  (defmethod encounter [:species/lion :species/deer]
+    [lion deer]
+    (str
+     (:name lion) " the " (name (:species lion)) " sees " (:name deer)
+     " the " (name (:species deer)) " and attacks immediately. "
+     (:name deer) " quickly reacts though and runs into safety."))
+#+end_src
+
+After this definition, deers will be able to run away from an
+attacking lion, while rabbits aren't that lucky.
+
+#+begin_src clojure
+  (encounter mufasa faline)
+  ;; -> "Mufasa the lion sees Faline the deer and attacks immediately. Faline quickly reacts though and runs into safety."
+
+  (encounter simba roger)
+  ;; -> "Simba the lion spots Roger the rabbit and immediately goes for the kill."
+#+end_src
+
+A final specific thing about rabbits.
+
+#+begin_src clojure
+  (defmethod encounter [:species/rabbit :species/rabbit]
+    [rab1 rab2]
+    (str "Rabbits " (:name rab1) " and " (:name rab2)
+         " encounter and start mating."))
+#+end_src
+
+From now on, Roger and Miss Bunny are rather happy for each other.
+
+#+begin_src clojure
+  (encounter miss-bunny roger)
+  ;; -> "Rabbits Miss Bunny and Roger encounter and start mating."
+#+end_src
+
+* Ad hoc hierarchies and multimethods
+~defmulti~ takes optional arguments, one of which is hierarchy.
+Multimethods defined like this do not consider the global hierarchy.
+In stead, the specified hierarchy is used to resolve the correct
+method to invoke.
+
+Let's define a small ad hoc hierarchy in which deers are actually
+carnivores.
+
+#+begin_src clojure
+  (def vicious-deer-hierarchy
+    (-> (make-hierarchy)
+        (derive :species/rabbit :species/herbivore)
+        (derive :species/deer :species/carnivore)
+        (derive :species/lion :species/carnivore)))
+#+end_src
+
+When defining a multimethod, it is possible to specify the
+~vicious-deer-hierarchy~ as the hierarchy to use for resolving the
+correct method to dispatch to on invocation.
+
+For example, the ~describe-food-habits~ multimethod takes a single
+argument and dispatches on its ~:species~ key. It uses
+~vicious-deer-hierarchy~ instead of the global hierarchy. Take care to
+pass the value of ~:hierarchy~ as a reference type (such as a var).
+
+#+begin_src clojure
+  (defmulti describe-food-habits :species
+    :hierarchy #'vicious-deer-hierarchy)
+
+  (defmethod describe-food-habits :species/carnivore
+    [c]
+    (str (:name c) " is eating meat."))
+
+  (defmethod describe-food-habits :species/herbivore
+    [h]
+    (str (:name h) " is a vegetarian."))
+#+end_src
+
+Reusing our animal definitions from [[The global hierarchy and
+multimethods]], Miss Bunny is a vegetarian, but Bambi eats meat.
+
+#+begin_src clojure
+  (describe-food-habits miss-bunny)
+  ;; -> "Miss Bunny is a vegetarian."
+
+  (describe-food-habits bambi)
+  ;; -> "Bambi is eating meat."
+#+end_src
