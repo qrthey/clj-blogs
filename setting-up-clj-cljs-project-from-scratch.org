@@ -21,7 +21,7 @@ the SPA.
 
 The following script creates a minimal ~product-ui~ project for a
 clojure application with a main function. The project is created under
-the ~/playground/~ folder. To ensure a blank slate, if a ~product-ui~
+the ~~/playground/~ folder. To ensure a blank slate, if a ~product-ui~
 folder exists at this location already, it is deleted first.
 
 #+begin_src sh :dir ~/playground/ :results none
