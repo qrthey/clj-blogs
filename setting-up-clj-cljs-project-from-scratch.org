@@ -421,7 +421,7 @@ as a resource-path in project.clj. Add the following
     (shadow/release :frontend))
   #+end_src
 
-~start-up-repl~ allows us to launch shadow-cljs in watch mode to
+~start-cljs-repl~ allows us to launch shadow-cljs in watch mode to
 recompile our clojurescript files each time they are saved, and have
 the new code hot-loaded in the browser. It then switches to a
 clojurescript repl. Let's try it.
