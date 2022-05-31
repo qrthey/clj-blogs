@@ -42,7 +42,7 @@ removing the ~:description~, ~:url~ and ~:license~ key-value pairs.
 
 
 We can then move the generated core.clj file and adjust its namespace
-declaration to ~product-ui.backend.server~..
+declaration to ~product-ui.backend.server~, and change it in the project.clj file as well.
 
 #+begin_src sh :dir ~/playground/product-ui :results none
   mkdir -p src/product_ui/backend
