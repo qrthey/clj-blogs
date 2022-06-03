@@ -450,7 +450,7 @@ in the browser and we should be connected. Test the following in the
 cljs repl.
 
 #+begin_src clojurescript
-  (+ 1 2 3 4)
+  (+ 1 2 3)
   ;; -> 6
 
   (= 1 1.0)
