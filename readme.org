@@ -12,6 +12,7 @@ renders org documents just fine.
 * Blog entries
 
 ** Setting up a full stack clj / cljs project from scratch
+
 [[./setting-up-clj-cljs-project-from-scratch.org][setting-up-clj-cljs-project-from-scratch.org]] describes in detail how
 to setup a leiningen project with a ring/jetty backend server that
 uses reitit for routing, and combining that project with a shadow-cljs
@@ -19,7 +20,17 @@ clojurescript SPA (Single Page Application) that uses reagent. The
 result is a minimal full stack example in which it is possible to
 switch between connected clojure and a clojurescript repls on the fly.
 
+*** TODO Describe ajax calls
+
+*** TODO Describe hosting minimally by showing how to produce a jar and a docker container
+
+- [ ] Not necessary to include how to host in the cloud or on-premise
+  for public access premise.
+
+*** TODO Describe key-handler function by having index.html to be a hiccup template
+
 ** Namespaced keyword inheritance & Multimethods
+
 [[./clj-derived-keywords-multimethods.org][clj-derived-keywords-multimethods.org]] shows a lesser known feature of
 clojure that allows for on the fly creation of taxonomies by deriving
 namespaced keywords from each other. These taxonomies can be useful
